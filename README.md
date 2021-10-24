@@ -7,13 +7,13 @@
 
 По итогам заданий 2.1.2 и 2.1.3 в репозитории появилось два файла .gitignore.
 * Пустой файл `.gitignore` в первом уровне иерархии (он пока не дает никаких инструкций по игнорированию)
-* Файл `terraform/Terraform.gitignore`, в который были скопировано содержание 
+* Файл `terraform/.gitignore`, в который было скопировано содержание 
 [образца](https://github.com/github/gitignore/blob/master/Terraform.gitignore). В соответствии с 
 заданными правилами, будут игнорироваться следущие файлы:
-  * все файлы, находящиеся в каталогах, имеющих название `.terraform/`
-  * файлы с расширением .tfstate или содержащие в названии `.tfstate.`
-  * файл под названием `crash.log`
-  * файлы с расширением `.tfvars`
+  * все файлы в репозитории, находящиеся в каталогах, имеющих название `.terraform/`
+  * файлы с расширением `.tfstate` или содержащие в названии `.tfstate.` внутри каталога `terraform`
+  * файл под названием `crash.log` внутри каталога `terraform`
+  * файлы с расширением `.tfvars` внутри каталога `terraform`
   * файлы `override.tf` и `override.tf.json`, а также все файлы, оканчивающиеся 
-  на `_override.tf` или `_override.tf.json`.
-  * файл с расширением `.terraformrc` и файл `terraform.rc`.
+  на `_override.tf` или `_override.tf.json` внутри каталога `terraform`
+  * файлы `.terraformrc` и `terraform.rc` внутри каталога `terraform`
