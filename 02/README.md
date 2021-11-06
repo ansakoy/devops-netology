@@ -86,8 +86,8 @@ fatal: -L parameter 'globalPluginDirs' starting at line 1: no match
 ### 2.7
 **Задача**: Кто автор функции `synchronizedWriters`?  
 **Метод**: Найти все коммиты, где функция была добавлена или удалена`git log -S"synchronizedWriters" --oneline`   
-Найти из полученных коммитов тот, где функция появляется впервые (`git show`)
-**Результат**:  Martin Atkins
+Найти из полученных коммитов тот, где функция появляется впервые (`git show`)  
+**Результат**:  Martin Atkins  
 ```
 % git log -S"synchronizedWriters" --oneline                               
 bdfea50cc remove unused
