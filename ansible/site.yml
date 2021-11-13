@@ -1,0 +1,25 @@
+---
+- name: Setup a working environment
+  gather_facts: no
+  hosts: webservers
+  user: root
+  vars_files:
+    - secrets.yml
+    - vars.yml
+
+  tasks:
+    - name: Create sudo user
+      user:
+        name: "{{ user_name }}"
+        group: sudo
+        state: present
+        password: "{{ my_pass | password_hash('sha512') }}"
+        shell: /bin/bash
+
+    - name: Setup authorized_keys
+      authorized_key:
+        user: "{{ user_name }}"
+        path: "/home/{{ user_name }}/.ssh/authorized_keys"
+        state: present
+        key: "https://github.com/{{ git_acc }}.keys"
+...

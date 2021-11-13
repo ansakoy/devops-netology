@@ -1,2 +1,5 @@
-sandbox/
 .idea/
+__pycache__/
+ansible/secrets.yml
+dnvenv/
+sandbox/
