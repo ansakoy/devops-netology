@@ -162,9 +162,31 @@ ls: cannot access 'blah': No such **file** or directory  # проверяем п
 > подошли под паттерн
 
 #### UPD: доработка
-(подсказали отличный источник [catonmat.net](https://catonmat.net/bash-one-liners-explained-part-three))
+Обратная связь:
+> Задание 8
+> Предлагаю посмотреть catonmat.net...part-three
+> Если нет времени изучать полностью, то перейдите к п. 21
+> Попробуйте выполнить такой вариант вашей команды:
+> ls /etc /etc1 2>&1 1>/dev/pts/0 | grep file
 
-Фактически задача была в том, чтобы поменять местами вывод stderr и stdout. Это делается через 
+(подсказали отличный источник [catonmat.net](https://catonmat.net/bash-one-liners-explained-part-three), спасибо)
+
+`ls /etc /etc1 2>&1 1>/dev/pts/0 | grep file` пытается вывести содержимое двух папок: /etc и несуществующей /etc1. 
+В результате выводится:
+```
+$ ls /etc /etc1 2>&1 1>/dev/pts/0 | grep file
+/etc:
+ls: cannot access '/etc1': No such file or directory
+NetworkManager                 hosts.deny              pm
+PackageKit                     init                    polkit-1
+X11                            init.d                  pollinate
+adduser.conf                   initramfs-tools         popularity-contest.conf
+...
+```
+Для /etc1 выдается ошибка, и в сообщении подсвечивается **file**.  
+Для /etc выводится список содержимого. 
+
+Если воспользоваться указанным источником, то там предлагается поменять местами вывод stderr и stdout через 
 посредничество дополнительного файлового дескриптора. Шаги:
 * Создать новый дескриптор, допустим 4, который будет копией stdout: `4>&1`
 * Создать дубликат stdout, который будет копией stderr: `1>&2`
@@ -176,6 +198,18 @@ file
 $ ls test 4>&1 1>&2 2>&4 | grep -o file
 blah  err.log  in_file  out_file  some_file  timer.py
 ```
+Проверим вывод команды, указанной в обратной связи с использованием нового способа редиректа:
+```
+$ ls /etc /etc1 4>&1 1>&2 2>&4 | grep file
+/etc:
+ls: cannot access '/etc1': No such file or directory
+NetworkManager                 hosts.deny              pm
+PackageKit                     init                    polkit-1
+X11                            init.d                  pollinate
+adduser.conf                   initramfs-tools         popularity-contest.conf
+...
+```
+Результат идентичен тому, что выше.
 
 ### 9. Что выведет команда `cat /proc/$$/environ`? Как еще можно получить аналогичный по содержанию вывод?
 Команда выводит переменные среды текущего шелла и их значения. Аналогичный вывод можно получить, например, 
