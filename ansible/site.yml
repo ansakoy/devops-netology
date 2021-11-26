@@ -3,6 +3,7 @@
   gather_facts: no
   hosts: webservers
   user: root
+  become_user: root
   vars_files:
     - secrets.yml
     - vars.yml
