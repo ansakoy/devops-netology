@@ -71,6 +71,22 @@ while (( 1==1 )); do
 done
 ```
 ### * Мы хотим, чтобы у нас были красивые сообщения для коммитов в репозиторий. Для этого нужно написать локальный хук для git, который будет проверять, что сообщение в коммите содержит код текущего задания в квадратных скобках и количество символов в сообщении не превышает 30. Пример сообщения: \[04-script-01-bash\] сломал хук.
-### 
-### 
-### 
+[Скрипт](commit-msg)
+```
+#!/bin/sh
+
+length=$(awk '{print length}' $1)
+
+egrep '\[[0-9]{2}-.+?-[0-9]{2}-.+?\].*' $1
+result=$?
+if (( $result != 0 )); then
+	echo "Incorrect prefix (example pattern: [04-script-01-bash])"
+	exit 1
+elif (( $length > 30 )); then
+	echo "Message can be 30 chars tops. This one is $length"
+	exit 1
+fi
+```
+В действии:  
+
+![](images/hook.png)
