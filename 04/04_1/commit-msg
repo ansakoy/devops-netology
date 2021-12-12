@@ -1,0 +1,14 @@
+#!/bin/sh
+
+length=$(awk '{print length}' $1)
+
+egrep '\[[0-9]{2}-.+?-[0-9]{2}-.+?\].*' $1
+result=$?
+if (( $result != 0 )); then
+	echo "Incorrect prefix (example pattern: [04-script-01-bash])"
+	exit 1
+elif (( $length > 30 )); then
+	echo "Message can be 30 chars tops. This one is $length"
+	exit 1
+fi
+
