@@ -1,0 +1,65 @@
+root@devnet:/home/ansakoy/vagrant# curl -v -i https://test.catabasis.site
+*   Trying 165.227.130.76:443...
+* TCP_NODELAY set
+* Connected to test.catabasis.site (165.227.130.76) port 443 (#0)
+* ALPN, offering h2
+* ALPN, offering http/1.1
+* successfully set certificate verify locations:
+*   CAfile: /etc/ssl/certs/ca-certificates.crt
+  CApath: /etc/ssl/certs
+* TLSv1.3 (OUT), TLS handshake, Client hello (1):
+* TLSv1.3 (IN), TLS handshake, Server hello (2):
+* TLSv1.2 (IN), TLS handshake, Certificate (11):
+* TLSv1.2 (IN), TLS handshake, Server key exchange (12):
+* TLSv1.2 (IN), TLS handshake, Server finished (14):
+* TLSv1.2 (OUT), TLS handshake, Client key exchange (16):
+* TLSv1.2 (OUT), TLS change cipher, Change cipher spec (1):
+* TLSv1.2 (OUT), TLS handshake, Finished (20):
+* TLSv1.2 (IN), TLS handshake, Finished (20):
+* SSL connection using TLSv1.2 / ECDHE-RSA-AES256-GCM-SHA384
+* ALPN, server accepted to use http/1.1
+* Server certificate:
+*  subject: CN=test.catabasis.site
+*  start date: Jan  3 21:51:49 2022 GMT
+*  expire date: Feb  2 21:52:18 2022 GMT
+*  subjectAltName: host "test.catabasis.site" matched cert's "test.catabasis.site"
+*  issuer: CN=catabasis.site Intermediate Authority
+*  SSL certificate verify ok.
+> GET / HTTP/1.1
+> Host: test.catabasis.site
+> User-Agent: curl/7.68.0
+> Accept: */*
+>
+* Mark bundle as not supporting multiuse
+< HTTP/1.1 200 OK
+HTTP/1.1 200 OK
+< Server: nginx/1.18.0 (Ubuntu)
+Server: nginx/1.18.0 (Ubuntu)
+< Date: Mon, 03 Jan 2022 21:55:32 GMT
+Date: Mon, 03 Jan 2022 21:55:32 GMT
+< Content-Type: text/html
+Content-Type: text/html
+< Content-Length: 226
+Content-Length: 226
+< Last-Modified: Mon, 03 Jan 2022 21:54:19 GMT
+Last-Modified: Mon, 03 Jan 2022 21:54:19 GMT
+< Connection: keep-alive
+Connection: keep-alive
+< ETag: "61d3708b-e2"
+ETag: "61d3708b-e2"
+< Accept-Ranges: bytes
+Accept-Ranges: bytes
+
+<
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Курсовая</title>
+</head>
+<body>
+    <h1>Работает</h1>
+    <h3>EngineX, сертификаты, Hashicorp Vault</h3>
+</body>
+</html>
+* Connection #0 to host test.catabasis.site left intact

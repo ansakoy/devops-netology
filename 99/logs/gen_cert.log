@@ -1,0 +1,45 @@
+sudo ./gen_cert.sh
+allexport       off
+braceexpand     on
+emacs           off
+errexit         on
+errtrace        off
+functrace       off
+hashall         on
+histexpand      off
+history         off
+ignoreeof       off
+interactive-comments    on
+keyword         off
+monitor         off
+noclobber       off
+noexec          off
+noglob          off
+nolog           off
+notify          off
+nounset         on
+onecmd          off
+physical        off
+pipefail        off
+posix           off
+privileged      off
+verbose         off
+vi              off
+xtrace          on
++ MY_USER=vagrant
++ KEYS_STORAGE=/home/vagrant/key_files
++ COMMON_NAME=test.catabasis.site
++ MY_DOMAIN_ROLE=catabasis-dot-site
++ CERT_DATA=catabasis_cert_data.json
++ VAULT_ADDR=http://127.0.0.1:8200
++ export VAULT_ADDR
+++ cat /home/vagrant/key_files/root_key
++ VAULT_TOKEN=s.se0pCIaYhn8BJDNBqeWO0j1a
++ export VAULT_TOKEN
++ vault write -format=json pki_int/issue/catabasis-dot-site common_name=test.catabasis.site ttl=720h
++ cat catabasis_cert_data.json
++ jq -r .data.certificate
++ cat catabasis_cert_data.json
++ jq -r '.data.ca_chain[0]'
++ jq -r .data.private_key
++ cat catabasis_cert_data.json

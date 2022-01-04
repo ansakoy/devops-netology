@@ -1,0 +1,20 @@
+root@devnet:/home/ansakoy/vagrant# nmap -p 443 --script ssl-cert test.catabasis.site
+Starting Nmap 7.80 ( https://nmap.org ) at 2022-01-03 22:01 UTC
+Nmap scan report for test.catabasis.site (165.227.130.76)
+Host is up (0.000089s latency).
+rDNS record for 165.227.130.76: devnet
+
+PORT    STATE SERVICE
+443/tcp open  https
+| ssl-cert: Subject: commonName=test.catabasis.site
+| Subject Alternative Name: DNS:test.catabasis.site
+| Issuer: commonName=catabasis.site Intermediate Authority
+| Public Key type: rsa
+| Public Key bits: 2048
+| Signature Algorithm: sha256WithRSAEncryption
+| Not valid before: 2022-01-03T21:51:49
+| Not valid after:  2022-02-02T21:52:18
+| MD5:   da0e 6848 e4f7 e090 c213 ec3c 2fe7 6e7a
+|_SHA-1: a77f 916e d3f7 a5f2 c574 df65 c6bb 7531 7ddc 3d4f
+
+Nmap done: 1 IP address (1 host up) scanned in 0.68 seconds

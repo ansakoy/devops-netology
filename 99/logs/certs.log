@@ -1,0 +1,203 @@
+sudo ./certs.sh
+allexport       off
+braceexpand     on
+emacs           off
+errexit         on
+errtrace        off
+functrace       off
+hashall         on
+histexpand      off
+history         off
+ignoreeof       off
+interactive-comments    on
+keyword         off
+monitor         off
+noclobber       off
+noexec          off
+noglob          off
+nolog           off
+notify          off
+nounset         on
+onecmd          off
+physical        off
+pipefail        off
+posix           off
+privileged      off
+verbose         off
+vi              off
+xtrace          on
++ VAULT_ADDR=http://127.0.0.1:8200
++ export VAULT_ADDR
++ USER=vagrant
++ INIT_KEYS_FILE=/home/vagrant/init_keys
++ KEYS_STORAGE=/home/vagrant/key_files
++ SCRIPTS_PATH=/home/vagrant/vboxshare
++ UNSEAL_KEY_PREFIX=unseal
++ ROOT_TOKEN=root_key
++ MY_POLICY=/home/vagrant/my-policy
++ MY_DOMAIN=catabasis.site
++ MY_DOMAIN_ROLE=catabasis-dot-site
++ ROOT_CERT=/home/vagrant/CA_cert.crt
++ INT_CERT=/home/vagrant/pki_intermediate.csr
++ SIGNED_INT_CERT=/home/vagrant/intermediate.cert.pem
++ /home/vagrant/vboxshare/parse_keys.py /home/vagrant/init_keys /home/vagrant/key_files
+++ cat /home/vagrant/key_files/root_key
++ VAULT_TOKEN=s.se0pCIaYhn8BJDNBqeWO0j1a
++ export VAULT_TOKEN
++ for i in {1..3}
+++ cat /home/vagrant/key_files/unseal1
++ vault operator unseal hHwbykgH0Lu6oYDFC9MKQZtlC0n4ZKZQ+MXadd55kSdX
+Key                Value
+---                -----
+Seal Type          shamir
+Initialized        true
+Sealed             true
+Total Shares       5
+Threshold          3
+Unseal Progress    1/3
+Unseal Nonce       3afec85d-5523-2255-c396-7027ac7a5e9b
+Version            1.9.2
+Storage Type       raft
+HA Enabled         true
++ for i in {1..3}
+++ cat /home/vagrant/key_files/unseal2
++ vault operator unseal efVMOgH4kJznljgkG/d3otldH/jIucLbF4jIixtudEPr
+Key                Value
+---                -----
+Seal Type          shamir
+Initialized        true
+Sealed             true
+Total Shares       5
+Threshold          3
+Unseal Progress    2/3
+Unseal Nonce       3afec85d-5523-2255-c396-7027ac7a5e9b
+Version            1.9.2
+Storage Type       raft
+HA Enabled         true
++ for i in {1..3}
+++ cat /home/vagrant/key_files/unseal3
++ vault operator unseal ZHYNlVL3AhsYEVriQSQJN5fthQfnaPyonoTa5TFBHofh
+Key                     Value
+---                     -----
+Seal Type               shamir
+Initialized             true
+Sealed                  false
+Total Shares            5
+Threshold               3
+Version                 1.9.2
+Storage Type            raft
+Cluster Name            vault-cluster-129b898c
+Cluster ID              fb537866-0350-a531-b420-82d9aa461d70
+HA Enabled              true
+HA Cluster              n/a
+HA Mode                 standby
+Active Node Address     <none>
+Raft Committed Index    25
+Raft Applied Index      25
+++ cat /home/vagrant/key_files/root_key
++ vault login s.se0pCIaYhn8BJDNBqeWO0j1a
+
+################################################################################################
+Здесь оборвалось с ошибкой:
+Error authenticating: error looking up token: Error making API request.
+
+URL: GET http://127.0.0.1:8200/v1/auth/token/lookup-self
+Code: 500. Errors:
+
+* local node not active but active cluster node not found
+
+Логин был произведен вручную
+vagrant@vagrant:~$ export VAULT_ADDR='http://127.0.0.1:8200'
+vagrant@vagrant:~$ export VAULT_TOKEN=s.se0pCIaYhn8BJDNBqeWO0j1a
+vagrant@vagrant:~$ vault login s.se0pCIaYhn8BJDNBqeWO0j1a
+WARNING! The VAULT_TOKEN environment variable is set! This takes precedence
+over the value set by this command. To use the value set by this command,
+unset the VAULT_TOKEN environment variable or set it to the token displayed
+below.
+
+Success! You are now authenticated. The token information displayed below
+is already stored in the token helper. You do NOT need to run "vault login"
+again. Future Vault requests will automatically use this token.
+
+Key                  Value
+---                  -----
+token                s.se0pCIaYhn8BJDNBqeWO0j1a
+token_accessor       rBoVYWFWfbL2lbDovYWC6tRR
+token_duration       ∞
+token_renewable      false
+token_policies       ["root"]
+identity_policies    []
+policies             ["root"]
+################################################################################################
+sudo ./certs.sh
+allexport       off
+braceexpand     on
+emacs           off
+errexit         on
+errtrace        off
+functrace       off
+hashall         on
+histexpand      off
+history         off
+ignoreeof       off
+interactive-comments    on
+keyword         off
+monitor         off
+noclobber       off
+noexec          off
+noglob          off
+nolog           off
+notify          off
+nounset         on
+onecmd          off
+physical        off
+pipefail        off
+posix           off
+privileged      off
+verbose         off
+vi              off
+xtrace          on
++ VAULT_ADDR=http://127.0.0.1:8200
++ export VAULT_ADDR
++ USER=vagrant
++ INIT_KEYS_FILE=/home/vagrant/init_keys
++ KEYS_STORAGE=/home/vagrant/key_files
++ SCRIPTS_PATH=/home/vagrant/vboxshare
++ UNSEAL_KEY_PREFIX=unseal
++ ROOT_TOKEN=root_key
++ MY_POLICY=/home/vagrant/my-policy
++ MY_DOMAIN=catabasis.site
++ MY_DOMAIN_ROLE=catabasis-dot-site
++ ROOT_CERT=/home/vagrant/CA_cert.crt
++ INT_CERT=/home/vagrant/pki_intermediate.csr
++ SIGNED_INT_CERT=/home/vagrant/intermediate.cert.pem
+++ cat /home/vagrant/key_files/root_key
++ VAULT_TOKEN=s.se0pCIaYhn8BJDNBqeWO0j1a
++ export VAULT_TOKEN
++ vault policy write /home/vagrant/my-policy -
+Success! Uploaded policy: /home/vagrant/my-policy
++ echo 'Generating root certificate...'
+Generating root certificate...
++ vault secrets enable pki
+Success! Enabled the pki secrets engine at: pki/
++ vault secrets tune -max-lease-ttl=87600h pki
+Success! Tuned the secrets engine at: pki/
++ vault write -field=certificate pki/root/generate/internal common_name=catabasis.site ttl=87600h
++ vault write pki/config/urls issuing_certificates=http://127.0.0.1:8200/v1/pki/ca crl_distribution_points=http://127.0.0.1:8200/v1/pki/crl
+Success! Data written to: pki/config/urls
++ echo 'Generating intermediate certificate...'
+Generating intermediate certificate...
++ vault secrets enable -path=pki_int pki
+Success! Enabled the pki secrets engine at: pki_int/
++ vault secrets tune -max-lease-ttl=43800h pki_int
+Success! Tuned the secrets engine at: pki_int/
++ jq -r .data.csr
++ vault write -format=json pki_int/intermediate/generate/internal 'common_name=catabasis.site Intermediate Authority'
++ vault write -format=json pki/root/sign-intermediate csr=@/home/vagrant/pki_intermediate.csr format=pem_bundle ttl=43800h
++ jq -r .data.certificate
++ vault write pki_int/intermediate/set-signed certificate=@/home/vagrant/intermediate.cert.pem
+Success! Data written to: pki_int/intermediate/set-signed
++ echo 'Creating role catabasis-dot-site...'
+Creating role catabasis-dot-site...
++ vault write pki_int/roles/catabasis-dot-site allowed_domains=catabasis.site allow_subdomains=true max_ttl=720h
+Success! Data written to: pki_int/roles/catabasis-dot-site
