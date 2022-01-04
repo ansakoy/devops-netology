@@ -43,7 +43,7 @@ sudo ./certs.sh
 > Иногда почему-то скрипт вылетает на этапе логина. Можно залогиниться вручную, 
 > экспортировав переменные VAULT_TOKEN, VAULT_ADDR ([stackoverflow](https://stackoverflow.com/questions/63878533/vault-error-server-gave-http-response-to-https-client))
 
-* Сгенерировать сертификат для сайта
+* Сгенерировать сертификат для сайта ([gen_cert.sh](gen_cert.sh))
 ```
 chmod 700 gen_cert.sh
 sudo ./gen_cert.sh
@@ -55,7 +55,7 @@ sudo ./gen_cert.sh
 sudo mv /home/ansakoy/shared/CA_cert.crt /usr/local/share/ca-certificates/CA_cert.crt
 sudo update-ca-certificates
 ```
-* На гест-машине запустить генерацию конфигов NGINX
+* На гест-машине запустить генерацию конфигов NGINX ([nginx_setup.sh](nginx_setup.sh))
 ```
 chmod 700 nginx_setup.sh
 sudo ./nginx_setup.sh
