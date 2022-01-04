@@ -392,6 +392,49 @@ Processing triggers for systemd (245.4-4ubuntu3.13) ...
 Processing triggers for man-db (2.9.1-1) ...
 Processing triggers for libc-bin (2.31-0ubuntu9.2) ...
 ```
+```
+sudo ./nginx_setup.sh
++ PAGE_FOLDER=/var/www/test
++ INDEX_PAGE=index.html
++ SITES_AVAILABLE=/etc/nginx/sites-available
++ SITES_ENABLED=/etc/nginx/sites-enabled
++ NGINX_CONF_NAME=test.catabasis.site
++ echo 'Creating site page...'
+Creating site page...
++ mkdir -p /var/www/test
++ tee /var/www/test/index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Курсовая</title>
+</head>
+<body>
+    <h1>Работает</h1>
+    <h3>EngineX, сертификаты, Hashicorp Vault</h3>
+</body>
+</html>
++ echo 'Configuring NGINX...'
+Configuring NGINX...
++ tee /etc/nginx/sites-available/test.catabasis.site
+server {
+    listen              443 ssl;
+    server_name         test.catabasis.site;
+    root /var/www/test;
+    index /var/www/test/index.html;
+    ssl_certificate     /etc/ssl/certs/test.catabasis.site.crt;
+    ssl_certificate_key /etc/ssl/private/test.catabasis.site.key;
+    ssl_protocols       TLSv1 TLSv1.1 TLSv1.2;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+}
++ ln -s /etc/nginx/sites-available/test.catabasis.site /etc/nginx/sites-enabled
++ nginx -t
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
++ echo 'Restarting NGINX...'
+Restarting NGINX...
++ systemctl restart nginx
+```
 ### Страница сервера nginx в браузере хоста не содержит предупреждений
 Т.к. речь по-прежнему о VPS с виртуальной машиной, проверяем страницу через терминал хостовой машины
 ```
