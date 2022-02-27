@@ -17,7 +17,7 @@
 > - Скриншот страницы свойств созданной ВМ, как на примере ниже:
 > 
 > <p align="center">
->   <img width="1200" height="600" src="./assets/yc_01.png">
+>   <img width="1200" height="600" src="https://github.com/netology-code/virt-homeworks/blob/virt-11/05-virt-04-docker-compose/assets/yc_01.png">
 > </p>
 
 ![](images/task_2.png)
@@ -29,7 +29,7 @@
 > Для получения зачета, вам необходимо предоставить:
 > - Скриншот работающего веб-интерфейса Grafana с текущими метриками, как на примере ниже
 > <p align="center">
->   <img width="1200" height="600" src="./assets/yc_02.png">
+>   <img width="1200" height="600" src="https://github.com/netology-code/virt-homeworks/blob/virt-11/05-virt-04-docker-compose/assets/yc_02.png">
 > </p>
 
 ![](images/task_3.png)
