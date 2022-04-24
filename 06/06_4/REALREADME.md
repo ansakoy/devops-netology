@@ -194,11 +194,9 @@ create table orders (
     price integer default 0
 ) partition by range (price);
 
-create table orders_1 partition of orders
-    for values from (499) to ('infinity');
+create table orders_1 partition of orders for values from (500) to (999999999);
 
-create table orders_2 partition of orders
-    for values from (0) to (500);
+create table orders_2 partition of orders for values from (0) to (500);
 ```
 нижнее значение инклюзивно, верхнее - эксклюзивно
 > Recall that adjacent partitions can share a bound value, since range upper bounds are treated as exclusive bounds.
@@ -208,7 +206,8 @@ create table orders_2 partition of orders
 
 `BEGIN` == `START TRANSACTION` ([про start transaction](https://www.postgresql.org/docs/current/sql-start-transaction.html))
 
-переделать существующую монолитную таблицу в секционированную
+переделать существующую монолитную таблицу в секционированную  
+[хорошее описание](https://dba.stackexchange.com/questions/106014/how-to-partition-existing-table-in-postgres)
 ```sql
 --Открываем транзакцию
 begin;
@@ -382,5 +381,22 @@ test_database=# select * from orders_2;
   8 | Dbiezdmin          |   501
   9 | New title          |  1000
 (4 rows)
+
+```
+примечательно, что в случае секционирования существующей таблицы родительская не считается 
+секционированной, тогда как созданная изначально в качестве таковой выделяется:
+```
+test_database=# \dt
+                   List of relations
+ Schema |     Name      |       Type        |  Owner   
+--------+---------------+-------------------+----------
+ public | orders        | table             | postgres
+ public | orders_1      | table             | postgres
+ public | orders_2      | table             | postgres
+ public | orders_backup | table             | postgres
+ public | test_orders   | partitioned table | postgres
+ public | test_orders_1 | table             | postgres
+ public | test_orders_2 | table             | postgres
+(7 rows)
 
 ```

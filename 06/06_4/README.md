@@ -139,11 +139,9 @@ create table orders (
     price integer default 0
 ) partition by range (price);
 
-create table orders_1 partition of orders
-    for values from (499);
+create table orders_1 partition of orders for values from (500) to (999999999);
 
-create table orders_2 partition of orders
-    for values from (0) to (499);
+create table orders_2 partition of orders for values from (0) to (500);
 ```
 
 ## Задача 4
