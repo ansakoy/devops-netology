@@ -1,0 +1,18 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:14-alpine
+    restart: always
+    container_name: psql14alpine
+    environment:
+      POSTGRES_PASSWORD: example
+    ports:
+      - 5432:5432
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+      - backupdata:/var/tmp
+
+volumes:
+  dbdata:
+  backupdata:

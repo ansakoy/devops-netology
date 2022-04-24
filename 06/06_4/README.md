@@ -35,11 +35,24 @@
 >
 >Используя таблицу [pg_stats](https://postgrespro.ru/docs/postgresql/12/view-pg-stats), найдите столбец таблицы `orders` 
 >с наибольшим средним значением размера элементов в байтах.
+
+*Милая подробность: из ссылки следует, что мы продолжаем жить во времена 12-го постгреса, как и в 06.2. 
+было бы куда полезнее, если бы как-то задавался принцип, что надо смотреть в современные доки 
+или хотя бы обращать внимание на версию*
+
 >
 >**Приведите в ответе** команду, которую вы использовали для вычисления и полученный результат.
 
+Команда:
 ```
-
+select attname from pg_stats where tablename = 'orders' order by avg_width desc limit 1;
+```
+Результат:
+```
+ attname 
+---------
+ title
+(1 row)
 ```
 
 ## Задача 3
@@ -52,12 +65,80 @@
 >Предложите SQL-транзакцию для проведения данной операции.
 
 ```
+--Открываем транзакцию
+begin;
 
+-- Создаем новую таблицу, которая будет родительской
+create table new_world_orders (
+    id integer not null,
+    title character varying(80) not null,
+    price integer default 0
+);
+
+-- Создаем таблицы-секции с проверкой корректности различающего значения и индексацией по соответствующей колонке
+create table orders_1 (
+    constraint pk_lte_499 primary key (id),
+    constraint ck_lte_499 check (price <= 499)
+) inherits (new_world_orders);
+create index idx_lte_499 on orders_1 (price);
+
+create table orders_2 (
+    constraint pk_gt_499 primary key (id),
+    constraint ck_gt_499 check (price > 499)
+) inherits (new_world_orders);
+create index idx_gt_499 on orders_2 (price);
+
+-- Раскладываем данные по секциям
+insert into orders_1
+    select * from orders
+    where price <= 499;
+
+insert into orders_2
+    select * from orders
+    where price > 499;
+
+-- Переименовываем таблицы
+alter table orders rename to orders_backup;
+alter table new_world_orders rename to orders;
+
+--Закрываем транзакцию
+commit;
+```
+Чтобы это еще и работало, желательно добавить триггер, который будет дальше 
+распределять значения по нужным секциям:
+```
+-- Пишем функцию
+create or replace function fn_insert() returns trigger as $$
+begin
+    if (new.price <= 499) then
+        insert into orders_1 values (new.*);
+    else
+        insert into orders_2 values (NEW.*);
+    end if;
+    return null;
+end;
+$$
+language plpgsql;
+
+-- Собственно триггер
+create trigger tr_insert before insert on orders
+for each row execute procedure fn_insert();
 ```
 >Можно ли было изначально исключить "ручное" разбиение при проектировании таблицы orders?
 
-```
+Можно, путем создания сразу секционированной таблицы. Вопрос, нужно ли.
+```sql
+create table orders (
+    id integer not null,
+    title character varying(80) not null,
+    price integer default 0
+) partition by range (price);
 
+create table orders_1 partition of orders
+    for values from (499);
+
+create table orders_2 partition of orders
+    for values from (0) to (499);
 ```
 
 ## Задача 4
