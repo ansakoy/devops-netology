@@ -1,0 +1,6 @@
+cluster.name: netology_test_cluster
+node.name: netology_test
+discovery.type: single-node
+path.data: /var/lib/data
+network.host: 0.0.0.0
+path.repo: /var/lib/snapshots
