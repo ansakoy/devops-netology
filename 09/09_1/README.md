@@ -1,5 +1,5 @@
 # Домашнее задание к занятию "09.01 Жизненный цикл ПО"
-> [Источник](https://github.com/netology-code/mnt-homeworks/blob/master/09-ci-01-intro/README.md)
+[Источник](https://github.com/netology-code/mnt-homeworks/blob/master/09-ci-01-intro/README.md)
 
 ## Подготовка к выполнению
 > 1. Получить бесплатную [JIRA](https://www.atlassian.com/ru/software/jira/free)
@@ -32,7 +32,7 @@
 
 [Workflow для бага](workflows/BugWF.xml)
 
-[Workflow для остальных типоа задач](workflows/OtherTaskWF.xml)
+[Workflow для остальных типов задач](workflows/OtherTaskWF.xml)
 
 Скриншоты соответствующих диаграмм:
 
