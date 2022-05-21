@@ -1,0 +1,1 @@
+https://github.com/netology-code/mnt-homeworks/blob/MNT-7/08-ansible-06-module/README.md

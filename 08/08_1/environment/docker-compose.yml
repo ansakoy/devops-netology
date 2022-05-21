@@ -1,0 +1,16 @@
+---
+services:
+  ubuntu:
+    image: ubuntu2004python39
+    container_name: ubuntu
+    restart: on-failure
+    command:
+      - sleep
+      - infinity
+  centos7:
+    image: centos:7
+    container_name: centos7
+    restart: on-failure
+    command:
+      - sleep
+      - infinity
