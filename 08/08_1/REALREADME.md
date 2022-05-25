@@ -511,14 +511,338 @@ ubuntu                     : ok=3    changed=0    unreachable=0    failed=0    s
 
 > 1. При помощи `ansible-vault` расшифруйте все зашифрованные файлы с переменными.
 
-
+```bash
+(devnet08venv) ansakoy@devnet:~/08_1/devnet08/playbook$ ansible-vault decrypt group_vars/el/examp.yml group_vars/deb/examp.yml
+Vault password: 
+Decryption successful
+(devnet08venv) ansakoy@devnet:~/08_1/devnet08/playbook$ cat group_vars/el/examp.yml
+---
+  some_fact: "el default fact"
+(devnet08venv) ansakoy@devnet:~/08_1/devnet08/playbook$ cat group_vars/deb/examp.yml
+---
+  some_fact: "deb default fact"
+```
 
 > 2. Зашифруйте отдельное значение `PaSSw0rd` для переменной `some_fact` паролем `netology`. Добавьте полученное значение в `group_vars/all/exmp.yml`.
+
+```bash
+ansible-vault encrypt_string PaSSw0rd
+```
+Результат:
+```bash
+ansakoy@devnet:~/08_1/devnet08/playbook$ ansible-vault encrypt_string PaSSw0rd
+New Vault password: 
+Confirm New Vault password: 
+!vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          62303964643366316634633962613934383062316631646261333166306264333231656435613537
+          6634616662356638393666363365336163656531653132320a306637616437393031623935336364
+          63363335633761633431383631643436383062383865643231306130643034393431373830326336
+          3364373961366437640a653130653432373434343338353431663030386337383835333130663661
+          6564
+Encryption successful
+```
+Добавляем:
+```yaml
+---
+  some_fact: !vault |
+    $ANSIBLE_VAULT;1.1;AES256
+    62303964643366316634633962613934383062316631646261333166306264333231656435613537
+    6634616662356638393666363365336163656531653132320a306637616437393031623935336364
+    63363335633761633431383631643436383062383865643231306130643034393431373830326336
+    3364373961366437640a653130653432373434343338353431663030386337383835333130663661
+    6564
+```
+
 > 3. Запустите `playbook`, убедитесь, что для нужных хостов применился новый `fact`.
+
+```bash
+(devnet08venv) ansakoy@devnet:~/08_1/devnet08/playbook$ sudo ansible-playbook --ask-vault-pass site.yml -i inventory/prod.yml
+[sudo] password for ansakoy: 
+Vault password: 
+
+PLAY [Print os facts] *************************************************************************************************************************************
+
+TASK [Gathering Facts] ************************************************************************************************************************************
+fatal: [centos7]: UNREACHABLE! => {"changed": false, "msg": "Failed to create temporary directory.In some cases, you may have been able to authenticate and did not have permissions on the target directory. Consider changing the remote tmp path in ansible.cfg to a path rooted in \"/tmp\", for more error information use -vvv. Failed command was: ( umask 77 && mkdir -p \"` echo ~/.ansible/tmp `\"&& mkdir \"` echo ~/.ansible/tmp/ansible-tmp-1653127715.6477914-1061086-84888347099406 `\" && echo ansible-tmp-1653127715.6477914-1061086-84888347099406=\"` echo ~/.ansible/tmp/ansible-tmp-1653127715.6477914-1061086-84888347099406 `\" ), exited with result 1", "unreachable": true}
+fatal: [ubuntu]: UNREACHABLE! => {"changed": false, "msg": "Failed to create temporary directory.In some cases, you may have been able to authenticate and did not have permissions on the target directory. Consider changing the remote tmp path in ansible.cfg to a path rooted in \"/tmp\", for more error information use -vvv. Failed command was: ( umask 77 && mkdir -p \"` echo ~/.ansible/tmp `\"&& mkdir \"` echo ~/.ansible/tmp/ansible-tmp-1653127715.630914-1061087-151389699521304 `\" && echo ansible-tmp-1653127715.630914-1061087-151389699521304=\"` echo ~/.ansible/tmp/ansible-tmp-1653127715.630914-1061087-151389699521304 `\" ), exited with result 1", "unreachable": true}
+ok: [localhost]
+
+TASK [Print OS] *******************************************************************************************************************************************
+ok: [localhost] => {
+    "msg": "Ubuntu"
+}
+
+TASK [Print fact] *****************************************************************************************************************************************
+ok: [localhost] => {
+    "msg": "PaSSw0rd"
+}
+
+PLAY RECAP ************************************************************************************************************************************************
+centos7                    : ok=0    changed=0    unreachable=1    failed=0    skipped=0    rescued=0    ignored=0   
+localhost                  : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+ubuntu                     : ok=0    changed=0    unreachable=1    failed=0    skipped=0    rescued=0    ignored=0 
+```
+А всё почему? Потому что когда выключаешь контейнеры, надо их потом еще и обратно ведь включить. 
+Но т.к. у нас из заданий ниже выяснился источник питонизированной убунты, мы сейчас еще и docker-compose 
+подновим.
+```yaml
+---
+services:
+  ubuntu:
+    image: pycontribs/ubuntu
+    container_name: ubuntu
+    restart: on-failure
+    command:
+      - sleep
+      - infinity
+  centos7:
+    image: centos:7
+    container_name: centos7
+    restart: on-failure
+    command:
+      - sleep
+      - infinity
+```
+```
+(devnet08venv) ansakoy@devnet:~/08_1/devnet08/playbook$ sudo ansible-playbook --ask-vault-pass site.yml -i inventory/prod.yml
+Vault password: 
+
+PLAY [Print os facts] *************************************************************************************************************************************
+
+TASK [Gathering Facts] ************************************************************************************************************************************
+ok: [localhost]
+ok: [ubuntu]
+ok: [centos7]
+
+TASK [Print OS] *******************************************************************************************************************************************
+ok: [localhost] => {
+    "msg": "Ubuntu"
+}
+ok: [centos7] => {
+    "msg": "CentOS"
+}
+ok: [ubuntu] => {
+    "msg": "Ubuntu"
+}
+
+TASK [Print fact] *****************************************************************************************************************************************
+ok: [localhost] => {
+    "msg": "PaSSw0rd"
+}
+ok: [centos7] => {
+    "msg": "el default fact"
+}
+ok: [ubuntu] => {
+    "msg": "deb default fact"
+}
+
+PLAY RECAP ************************************************************************************************************************************************
+centos7                    : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+localhost                  : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+ubuntu                     : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0  
+```
+Теперь всё работает и даже не скандалит.
+
 > 4. Добавьте новую группу хостов `fedora`, самостоятельно придумайте для неё переменную. В качестве образа можно использовать [этот](https://hub.docker.com/r/pycontribs/fedora).
 
 А, вот откуда надо было брать убунту с питоном.
 
+Опять редактируем docker-compose
+```yaml
+---
+services:
+  ubuntu:
+    image: pycontribs/ubuntu
+    container_name: ubuntu
+    restart: on-failure
+    command:
+      - sleep
+      - infinity
+  centos7:
+    image: centos:7
+    container_name: centos7
+    restart: on-failure
+    command:
+      - sleep
+      - infinity
+  fedora:
+    image: pycontribs/fedora
+    container_name: fedora
+    restart: on-failure
+    command:
+      - sleep
+      - infinity
+```
+А также `playbook/inventory/prod.yml`
+```yaml
+---
+  el:
+    hosts:
+      centos7:
+        ansible_connection: docker
+  deb:
+    hosts:
+      ubuntu:
+        ansible_connection: docker
+  fed:
+    hosts:
+      fedora:
+        ansible_connection: docker
+  local:
+    hosts:
+      localhost:
+        ansible_connection: local
+```
+А также создаем еще одну групповую переменную `playbook/group_vars/fed/examp.yml`:
+```yaml
+---
+  some_fact: "fed default fact"
+```
+
+Контейнеры на месте:
+```bash
+(devnet08venv) ansakoy@devnet:~/08_1/devnet08/playbook$ sudo docker ps
+CONTAINER ID   IMAGE               COMMAND            CREATED         STATUS         PORTS     NAMES
+c356e7802dfe   pycontribs/fedora   "sleep infinity"   3 minutes ago   Up 3 minutes             fedora
+bee6adb3c169   pycontribs/ubuntu   "sleep infinity"   3 minutes ago   Up 3 minutes             ubuntu
+df36dfc4fcc1   centos:7            "sleep infinity"   3 minutes ago   Up 3 minutes             centos7
+```
+Плейбук тоже отрабатывает правильно:
+```bash
+(devnet08venv) ansakoy@devnet:~/08_1/devnet08/playbook$ sudo ansible-playbook --ask-vault-pass site.yml -i inventory/prod.yml
+Vault password: 
+
+PLAY [Print os facts] *************************************************************************************************************************************
+
+TASK [Gathering Facts] ************************************************************************************************************************************
+ok: [localhost]
+ok: [fedora]
+ok: [ubuntu]
+ok: [centos7]
+
+TASK [Print OS] *******************************************************************************************************************************************
+ok: [localhost] => {
+    "msg": "Ubuntu"
+}
+ok: [centos7] => {
+    "msg": "CentOS"
+}
+ok: [ubuntu] => {
+    "msg": "Ubuntu"
+}
+ok: [fedora] => {
+    "msg": "Fedora"
+}
+
+TASK [Print fact] *****************************************************************************************************************************************
+ok: [localhost] => {
+    "msg": "PaSSw0rd"
+}
+ok: [centos7] => {
+    "msg": "el default fact"
+}
+ok: [ubuntu] => {
+    "msg": "deb default fact"
+}
+ok: [fedora] => {
+    "msg": "fed default fact"
+}
+
+PLAY RECAP ************************************************************************************************************************************************
+centos7                    : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+fedora                     : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+localhost                  : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+ubuntu                     : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+```
+
 > 5. Напишите скрипт на bash: автоматизируйте поднятие необходимых контейнеров, запуск ansible-playbook и остановку контейнеров.
+
+Для этого всё-таки понадобится сначала убрать из интерактивного режима ввод пароля.  
+Сохраняем пароль в файл:
+```bash
+echo netology > .vaultpass
+```
+Добавляем в `.gitignore`.  
+Проверяем:
+```
+sudo ansible-playbook --vault-pass-file .vaultpass site.yml -i inventory/prod.yml
+```
+Пишем скрипт:
+```bash
+#!/bin/bash
+
+set -euxo
+
+docker-compose up -d
+
+ansible-playbook --vault-pass-file playbook/.vaultpass playbook/site.yml -i playbook/inventory/prod.yml
+
+docker-compose down
+```
+Делаем запускаемым и запускаем:
+```bash
+(devnet08venv) ansakoy@devnet:~/08_1/devnet08$ chmod 700 scripts/run.sh 
+(devnet08venv) ansakoy@devnet:~/08_1/devnet08$ sudo scripts/run.sh
+```
+
+```bash
++ docker-compose up -d
+ubuntu is up-to-date
+centos7 is up-to-date
+fedora is up-to-date
++ ansible-playbook --vault-pass-file playbook/.vaultpass playbook/site.yml -i playbook/inventory/prod.yml
+
+PLAY [Print os facts] *************************************************************************************************************************************
+
+TASK [Gathering Facts] ************************************************************************************************************************************
+ok: [localhost]
+ok: [ubuntu]
+ok: [fedora]
+ok: [centos7]
+
+TASK [Print OS] *******************************************************************************************************************************************
+ok: [localhost] => {
+    "msg": "Ubuntu"
+}
+ok: [ubuntu] => {
+    "msg": "Ubuntu"
+}
+ok: [centos7] => {
+    "msg": "CentOS"
+}
+ok: [fedora] => {
+    "msg": "Fedora"
+}
+
+TASK [Print fact] *****************************************************************************************************************************************
+ok: [localhost] => {
+    "msg": "PaSSw0rd"
+}
+ok: [centos7] => {
+    "msg": "el default fact"
+}
+ok: [fedora] => {
+    "msg": "fed default fact"
+}
+ok: [ubuntu] => {
+    "msg": "deb default fact"
+}
+
+PLAY RECAP ************************************************************************************************************************************************
+centos7                    : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+fedora                     : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+localhost                  : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+ubuntu                     : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+
++ docker-compose down
+Stopping fedora  ... done
+Stopping ubuntu  ... done
+Stopping centos7 ... done
+Removing fedora  ... done
+Removing ubuntu  ... done
+Removing centos7 ... done
+Removing network 08_1_default
+```
 > 6. Все изменения должны быть зафиксированы и отправлены в вашей личный репозиторий.
 
