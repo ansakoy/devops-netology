@@ -1,8 +1,6 @@
 https://github.com/netology-code/mnt-homeworks/tree/MNT-7/08-ansible-02-playbook
 https://github.com/ansakoy/devnet082
 
-# ВЫПОЛНЕНИЕ ЗАДАНИЯ ЕЩЕ НЕ ЗАВЕРШЕНО!!
-
 # Домашнее задание к занятию "08.02 Работа с Playbook"
 [Источник](https://raw.githubusercontent.com/netology-code/mnt-homeworks/MNT-13/08-ansible-02-playbook/README.md)
 
@@ -55,24 +53,6 @@ ffdb1c244818   centos:7                  "sleep infinity"         11 seconds ago
 ```
 
 > 2. Допишите playbook: нужно сделать ещё один play, который устанавливает и настраивает [vector](https://vector.dev).
-
-```yaml
-- name: Install vector
-  hosts: clickhouse
-  handlers:
-    - name: Start vector service
-      become: true
-      ansible.builtin.service:
-        name: vector
-        state: restarted
-  tasks:
-    - name: Get vector distrib
-      ansible.builtin.get_url:
-        url: "https://packages.timber.io/vector/{{ vector_version }}/vector-{{ vector_version }}-1.x86_64.rpm"
-        dest: "./vector-{{ vector_version }}.rpm"
-        mode: 0644
-      notify: Start vector service
-```
 
 > 3. При создании tasks рекомендую использовать модули: `get_url`, `template`, `unarchive`, `file`.
 
@@ -218,73 +198,3 @@ Finished with 1 failure(s), 3 warning(s) on 1 files.
 (venv) ansakoy@devnet:~/08_2/playbook$ ansible-lint site.yml
 WARNING  Overriding detected file kind 'yaml' with 'playbook' for given positional argument: site.yml
 ```
-
-> 6. Попробуйте запустить playbook на этом окружении с флагом `--check`.
-
-```bash
-(venv) ansakoy@devnet:~/08_2/playbook$ sudo ansible-playbook -i inventory/prod.yml site.yml --check
-
-PLAY [Install Clickhouse] *******************************************************************************************************************
-
-TASK [Gathering Facts] **********************************************************************************************************************
-ok: [clickhouse-01]
-
-TASK [Get clickhouse distrib] ***************************************************************************************************************
-changed: [clickhouse-01] => (item=clickhouse-client)
-changed: [clickhouse-01] => (item=clickhouse-server)
-failed: [clickhouse-01] (item=clickhouse-common-static) => {"ansible_loop_var": "item", "changed": false, "dest": "./clickhouse-common-static-22.3.3.44.rpm", "elapsed": 0, "item": "clickhouse-common-static", "msg": "Request failed", "response": "HTTP Error 404: Not Found", "status_code": 404, "url": "https://packages.clickhouse.com/rpm/stable/clickhouse-common-static-22.3.3.44.noarch.rpm"}
-
-TASK [Get clickhouse distrib] ***************************************************************************************************************
-changed: [clickhouse-01]
-
-TASK [Install clickhouse packages] **********************************************************************************************************
-fatal: [clickhouse-01]: FAILED! => {"changed": false, "module_stderr": "/bin/sh: sudo: command not found\n", "module_stdout": "", "msg": "MODULE FAILURE\nSee stdout/stderr for the exact error", "rc": 127}
-
-PLAY RECAP **********************************************************************************************************************************
-clickhouse-01              : ok=2    changed=1    unreachable=0    failed=1    skipped=0    rescued=1    ignored=0   
-```
-Какая-то фигня со скачиванием файла. Но срабатывает rescue.  
-Кстати, [вот тут ссылки на пакеты](https://packages.clickhouse.com/rpm/stable/)
-
-Также имеем проблемы с установкой. Например, в контейнере нет sudo. Будем играть, что это не контейнер, 
-и установим туда sudo:
-```
-sudo docker exec -ti clickhouse-01 bash
-[root@4835b962a452 /]# yum install -y sudo
-```
-Да и со скачиванием у нас там что-то странное. По крайней мере, в интерактивном режиме 
-в контейнере предполагаемые файлы не видны. Попробуем установить wget
-```
-yum install -y wget
-```
-И пробуем скачать руками:
-```
-[root@4835b962a452 /]# wget https://packages.clickhouse.com/rpm/stable/clickhouse-common-static-dbg-22.3.3.44.x86_64.rpm
---2022-06-19 15:59:40--  https://packages.clickhouse.com/rpm/stable/clickhouse-common-static-dbg-22.3.3.44.x86_64.rpm
-Resolving packages.clickhouse.com (packages.clickhouse.com)... 172.66.43.7, 172.66.40.249, 2606:4700:3108::ac42:2b07, ...
-Connecting to packages.clickhouse.com (packages.clickhouse.com)|172.66.43.7|:443... connected.
-HTTP request sent, awaiting response... 200 OK
-Length: 797831193 (761M) [application/x-rpm]
-Saving to: 'clickhouse-common-static-dbg-22.3.3.44.x86_64.rpm'
-
-100%[===================================================================================================>] 797,831,193 5.65MB/s   in 2m 14s 
-
-2022-06-19 16:01:54 (5.69 MB/s) - 'clickhouse-common-static-dbg-22.3.3.44.x86_64.rpm' saved [797831193/797831193]
-```
-Скачалось нормально
-```bash
-[root@4835b962a452 /]# ls
-anaconda-post.log  clickhouse-common-static-dbg-22.3.3.44.x86_64.rpm  etc   lib    media  opt   root  sbin  sys  usr
-bin                dev                                                home  lib64  mnt    proc  run   srv   tmp  var
-```
-Удалим этот файл и попробуем снова запустить плейбук. И та же фигня - файлов не видно.
-
-А, собственно откуда там быть файлам, когда это просто --check
-
-> 7. Запустите playbook на `prod.yml` окружении с флагом `--diff`. Убедитесь, что изменения на системе произведены.
-
-> 8. Повторно запустите playbook с флагом `--diff` и убедитесь, что playbook идемпотентен.
-
-> 9. Подготовьте README.md файл по своему playbook. В нём должно быть описано: что делает playbook, какие у него есть параметры и теги.
-
-> 10. Готовый playbook выложите в свой репозиторий, поставьте тег `08-ansible-02-playbook` на фиксирующий коммит, в ответ предоставьте ссылку на него.
