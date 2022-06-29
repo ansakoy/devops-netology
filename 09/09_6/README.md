@@ -199,3 +199,7 @@ deployer:
   only:
     - main
 ```
+Тест успешно [фейлит пайплайн](https://gitlab.com/ansakoytest/devnet_gitlab/-/pipelines/575434668) в случае 
+несоответствия ожиданиям (в случае соответствия пайплайн срабатывает).
+
+![](https://gitlab.com/ansakoytest/devnet_gitlab/-/pipelines/575434668)
