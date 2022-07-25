@@ -1,6 +1,6 @@
 # Дипломный практикум в YandexCloud
 
-[Официальный источник](https://netology.ru/profile/program/fdvpspdc-2/lessons/135374/lesson_items/696439)
+[Официальный источник](https://netology.ru/profile/program/fdvpspdc-2/lessons/135374/lesson_items/696439)  
 [Источник маркдауна](https://github.com/olegbukatchuk/devops-diplom-yandexcloud/blob/main/README.md)
 
   * [Цели:](#цели)
@@ -99,6 +99,12 @@ pip install yandexcloud
 ```
 terraform workspace new stage
 terraform workspace new prod
+```
+```
+(venvdiploma) ansakoy@devnetbig:~/diploma/terraform$ terraform workspace list
+  default
+  prod
+* stage
 ```
 
 >    б. Альтернативный вариант: используйте один workspace, назвав его *stage*. Пожалуйста, не используйте workspace, создаваемый Terraform-ом по-умолчанию (*default*).
@@ -240,6 +246,10 @@ yandex_vpc_subnet.subnet-a: Creation complete after 2s [id=e9baqvrvfijivoce63rv]
 
 ![](images/ya_vpc_zones.png)
 
+И даже бакет это заметил:
+
+![](images/ya_bucket.png)
+
 <details>
 <summary> `terraform destroy` </summary>
 
@@ -352,6 +362,86 @@ yandex_vpc_network.diploma-vpc-network: Destruction complete after 2s
     - `https://alertmanager.you.domain` (Alert Manager)
 2. Настроены все upstream для выше указанных URL, куда они сейчас ведут на этом шаге не важно, позже вы их отредактируете и укажите верные значения.
 2. В браузере можно открыть любой из этих URL и увидеть ответ сервера (502 Bad Gateway). На текущем этапе выполнение задания это нормально!
+
+Тут всё сложно. Как минимум, мы собираемся в перспективе поднять и убить кучу ВМ в 
+облаке, и каждый раз придется переделывать ресурсные записи DNS, чтобы они отвечали 
+новым IP. Хотелось бы как-то автоматизировать процесс. Для этого вроде бы 
+существует [Yandex Cloud DNS](https://cloud.yandex.ru/docs/dns/). Будем разбираться.
+
+[Понятийный аппарат](https://cloud.yandex.ru/docs/dns/concepts/dns-zone)
+
+Похоже, потребуются публичные DNS-зоны, что [требует делегации домена в облако](https://cloud.yandex.ru/docs/dns/concepts/dns-zone#public-zones).
+
+> Доменные имена в публичных зонах доступны из интернета. Если у вас есть зарегистрированный домен, вы можете делегировать его. Для этого укажите адреса серверов имен Yandex Cloud в NS-записях вашего регистратора:
+> 
+> `ns1.yandexcloud.net.`
+> `ns2.yandexcloud.net.`
+
+Следуя [инструкции](https://cloud.yandex.ru/docs/dns/quickstart), создаем ВМ.
+
+Пытаемся сделать так, чтобы терраформ сам создал DNS, в соответствии с 
+[инструкцией](https://cloud.yandex.ru/docs/dns/operations/zone-create-public).
+
+Вписываем "свои" (отличные от дефолтных регрушных) DNS-сервера
+
+![](images/regrudelegate.png)
+
+И пишем под каждую ноду ТФ-конфиг. На самом деле пока будем использовать только 
+первый конфиг, где будет стоять nginx для обратного прокси.
+
+И теперь нам надо как-то воссоединить это с ансиблом, который будет всё устанавливать. 
+Главное - дать ансиблу понять, куда устанавливать. А это мы можем узнать только 
+при создании машин от терраформа. Значит, ТФ и должен создать для ансибла инвентори.
+
+Интересная штука, которую надо иметь в виду при работе с богомерзкими облаками: 
+возможности создания [динамического инвентори](https://docs.ansible.com/ansible/2.7/user_guide/intro_dynamic_inventory.html#intro-dynamic-inventory).
+
+[Синтаксис инвентори в формате INI](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/ini_inventory.html)
+
+[Доки по сертботу](https://eff-certbot.readthedocs.io/en/stable/using.html)
+
+Планируемая последовательность:
+- делаем шаблон для инвентори (он же hosts, но уж ладно)
+- туда же складываем переменные, чтобы два раза не вставать
+- делаем наполнялку этого шаблона терраформом (в итоге получаем ansible/inventory.ini)
+- делаем шаблон конфига реверс-прокси, наполняя переменными, сложенными в инвентори
+- пишем ансиблороль для установки nginx на прокси-сервере и там же генерация сертификатов
+- пишем плейбук, в котором авторизуемся и запускаем эту роль
+- запускаем сценарий из ТФ после генерации инвентори
+
+А теперь мы со всем этим ... попробуем взлететь. И...
+
+```
+│ Error: JSON in "/Users/ansakoy/Documents/Courses/netology/devnet-diploma/key.json" are not valid: invalid character '/' looking for beginning of value
+│
+│   with provider["registry.terraform.io/yandex-cloud/yandex"],
+│   on providers.tf line 23, in provider "yandex": 
+│   23:   service_account_key_file = var.yc_sa_key_path
+```
+
+ Первый шаг в траблшутинге: проверить, есть ли там вообще этот файл, гы. А потом перезапустить 
+ генерилку тф-переменных, ага
+
+Дебаггинг, почему падает nginx
+```
+systemctl status nginx.service
+```
+```
+journalctl -xe
+```
+А падал он из-за ошибки в пути к сертификатам, если что.
+
+И в итоге в воркспейсе prod оно сработало:
+
+![](images/cert_domain.png)
+
+![](images/cert_www.png)
+
+![](images/cert_prometheus.png)
+
+![](images/cert_alerts.png)
+
+и так далее
 
 ___
 ### Установка кластера MySQL
