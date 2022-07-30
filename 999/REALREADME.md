@@ -443,6 +443,13 @@ journalctl -xe
 
 и так далее
 
+`ansible-config view` - узнать, в правильный ли конфиг смотрит ансибл
+
+[NAT instance](https://cloud.yandex.ru/marketplace/products/yc/nat-instance-ubuntu-18-04-lts)
+
+Обеспечение доступа в интернет из приватной сети через нат-инстанс посредством 
+таблицы маршрутизации: https://cloud.yandex.ru/docs/vpc/operations/static-route-create
+
 ___
 ### Установка кластера MySQL
 
@@ -464,6 +471,110 @@ ___
 
 **Вы должны понимать, что в рамках обучения это допустимые значения, но в боевой среде использование подобных значений не приемлимо! Считается хорошей практикой использовать логины и пароли повышенного уровня сложности. В которых будут содержаться буквы верхнего и нижнего регистров, цифры, а также специальные символы!**
 
+План действий:
+- добавляем в терраформ создание еще двух нод
+- выносим необходимые значения в переменные inventory
+- создаем роль для установки субд на эти две ноды и настройки репликации
+
+Также: нам нужно сделать так, чтобы (а) на машину с внутренним адресом можно было 
+установить что-либо извне; (б) эти машины могли обмениваться между собой данными; 
+(в) машина с публичным адресом могла управлять всеми машинами с внутренними адресами.
+
+
+Разборки с неработающей репликацией MySQL. Две машины, на каждой по СУБД, 
+но слейв не может подключиться к мастеру.
+
+смотрим юзеров
+```select User from mysql.user;```
+смотрим есть ли нужные права у слейва:
+```
+mysql> select User, Repl_slave_priv, Repl_client_priv from mysql.user;
++------------------+-----------------+------------------+
+| User             | Repl_slave_priv | Repl_client_priv |
++------------------+-----------------+------------------+
+| debian-sys-maint | Y               | Y                |
+| mysql.infoschema | N               | N                |
+| mysql.session    | N               | N                |
+| mysql.sys        | N               | N                |
+| root             | Y               | Y                |
+| slave            | Y               | Y                |
+| wordpress        | N               | N                |
++------------------+-----------------+------------------+
+7 rows in set (0.01 sec)
+```
+есть
+
+с той же машины подключаемся нормально:
+```
+ubuntu@db01:~$ mysql -u slave -p
+Enter password: 
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 33
+Server version: 8.0.30-0ubuntu0.20.04.2 (Ubuntu)
+
+Copyright (c) 2000, 2022, Oracle and/or its affiliates.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+```
+а с внешней машины фигня:
+```
+Host 'db02.catabasis.site' is not allowed to connect to this MySQL server
+```
+на всякий случай убираем кэш на мастере `FLUSH PRIVILEGES;`
+
+в общем мораль: в MySQL надо указывать, откуда юзер будет подключаться, помимо того 
+что байндить 0.0.0.0.
+
+```
+ubuntu@db02:~$ mysql -u slave -h 192.168.100.13 -p
+Enter password: 
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 27
+Server version: 8.0.30-0ubuntu0.20.04.2 (Ubuntu)
+
+Copyright (c) 2000, 2022, Oracle and/or its affiliates.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+mysql> 
+```
+И реплика включилась
+```
+ubuntu@db02:~$ sudo mysql                                                                                                                                                                         
+Welcome to the MySQL monitor.  Commands end with ; or \g.                                                                                                                                         
+Your MySQL connection id is 19                                                                                                                                                                    
+Server version: 8.0.30-0ubuntu0.20.04.2 (Ubuntu)                                                                                                                                                  
+                                                                                                                                                                                                  
+Copyright (c) 2000, 2022, Oracle and/or its affiliates.                                                                                                                                           
+                                                                                                                                                                                                  
+Oracle is a registered trademark of Oracle Corporation and/or its                                                                                                                                 
+affiliates. Other names may be trademarks of their respective                                                                                                                                     
+owners.                                                                                                                                                                                           
+                                                                                                                                                                                                  
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.                                                                                                                    
+                                                                                                                                                                                                  
+mysql> SHOW REPLICA STATUS\G;                                                                                                                                                                     
+*************************** 1. row ***************************                                                                                                                                    
+             Replica_IO_State: Waiting for source to send event                                                                                                                                   
+                  Source_Host: 192.168.100.13                                                                                                                                                     
+                  Source_User: slave                                                                                                                                                              
+                  Source_Port: 3306                                                                                                                                                               
+                Connect_Retry: 60                                                                                                                                                                 
+              Source_Log_File: mysql-bin.000008                                                                                                                                                   
+          Read_Source_Log_Pos: 600
+               Relay_Log_File: mysql-relay-bin.000003
+                Relay_Log_Pos: 373
+        Relay_Source_Log_File: mysql-bin.000008
+
+```
 ___
 ### Установка WordPress
 
@@ -487,6 +598,26 @@ ___
     - `https://www.you.domain` (WordPress)
 3. На сервере `you.domain` отредактирован upstream для выше указанного URL и он смотрит на виртуальную машину на которой установлен WordPress.
 4. В браузере можно открыть URL `https://www.you.domain` и увидеть главную страницу WordPress.
+
+красота загрузилась, но в воркспейсе stage фальшивые сертификаты, а статические файлы 
+пытаются грузиться через https. попробуем загрузить через prod.
+
+И не работает. Сертификат видит, но статики нет. Потому что она пытается подгрузиться 
+через http:
+
+```
+http://catabasis.site/wp-includes/css/dashicons.min.css?ver=6.0.1
+http://catabasis.site/wp-admin/css/forms.min.css?ver=6.0.1
+http://catabasis.site/wp-includes/js/jquery/jquery.min.js?ver=3.6.0
+http://catabasis.site/wp-admin/js/language-chooser.min.js?ver=6.0.1
+```
+
+И... всё дело спасло добавление заголовка:
+```
+add_header 'Content-Security-Policy' 'upgrade-insecure-requests';
+```
+в конфиг реверс-прокси.
+
 ---
 ### Установка Gitlab CE и Gitlab Runner
 
@@ -506,9 +637,10 @@ ___
 1. Интерфейс Gitlab доступен по https.
 2. В вашей доменной зоне настроена A-запись на внешний адрес reverse proxy:
     - `https://gitlab.you.domain` (Gitlab)
-3. На сервере `you.domain` отредактирован upstream для выше указанного URL и он смотрит на виртуальную машину на которой установлен Gitlab.
+4. На сервере `you.domain` отредактирован upstream для выше указанного URL и он смотрит на виртуальную машину на которой установлен Gitlab.
 3. При любом коммите в репозиторий с WordPress и создании тега (например, v1.0.0) происходит деплой на виртуальную машину.
 
+Сдираем процесс репликации [отсюда](https://www.digitalocean.com/community/tutorials/how-to-set-up-replication-in-mysql)
 ___
 ### Установка Prometheus, Alert Manager, Node Exporter и Grafana
 
