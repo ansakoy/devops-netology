@@ -73,7 +73,7 @@ sudo gitlab-runner start
 ```
 Регистрация:
 ```
-sudo gitlab-runner register --url http://gitlab.catabasis.site/ --registration-token $REGISTRATION_TOKEN
+sudo gitlab-runner register --url https://gitlab.catabasis.site/ --registration-token $REGISTRATION_TOKEN
 ```
 $REGISTRATION_TOKEN берется со страницы, на которой настраивается кастомный раннер.
 

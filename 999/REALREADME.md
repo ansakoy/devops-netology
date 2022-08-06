@@ -481,6 +481,8 @@ ___
 (в) машина с публичным адресом могла управлять всеми машинами с внутренними адресами.
 
 
+Сдираем процесс репликации [отсюда](https://www.digitalocean.com/community/tutorials/how-to-set-up-replication-in-mysql)
+
 Разборки с неработающей репликацией MySQL. Две машины, на каждой по СУБД, 
 но слейв не может подключиться к мастеру.
 
@@ -640,7 +642,49 @@ add_header 'Content-Security-Policy' 'upgrade-insecure-requests';
 4. На сервере `you.domain` отредактирован upstream для выше указанного URL и он смотрит на виртуальную машину на которой установлен Gitlab.
 3. При любом коммите в репозиторий с WordPress и создании тега (например, v1.0.0) происходит деплой на виртуальную машину.
 
-Сдираем процесс репликации [отсюда](https://www.digitalocean.com/community/tutorials/how-to-set-up-replication-in-mysql)
+Набор премудростей по гитлабу:
+- не надо мучиться с простыней gitlab.rb целиком. При желании ее можно сохранить как 
+-bak и работать в новом файле. А вообще вся простыня со всеми бесчисленными опциями 
+доступна здесь: https://gitlab.com/gitlab-org/omnibus-gitlab/blame/master/files/gitlab-config-template/gitlab.rb.template, 
+как гласит собственно исходный файл.
+- Для настройки с сертификатом через прокси достаточно иметь в gitlab.rb:
+```
+external_url 'https://мой-шикарный.домен'
+
+nginx['listen_port'] = 80
+nginx['listen_https'] = false
+
+nginx['proxy_set_headers'] = {
+  "Host" => "$http_host_with_default",
+  "X-Real-IP" => "$remote_addr",
+  "X-Forwarded-For" => "$proxy_add_x_forwarded_for",
+  "X-Forwarded-Proto" => "https",
+  "X-Forwarded-Ssl" => "on",
+  "Upgrade" => "$http_upgrade",
+  "Connection" => "$connection_upgrade"
+}
+```
+- После изменения конфига надо переконфигурировать гитлаб
+```
+sudo gitlab-ctl reconfigure
+```
+- После переконфигурации его надо перезапустить
+```
+sudo gitlab-ctl restart
+```
+- У гитлаба суперудобная система просмотра логов:
+```
+sudo gitlab-ctl tail <что-нужно-посмотреть>
+```
+Например:
+```
+sudo gitlab-ctl tail nginx
+```
+- Когда после успешного перезапуска сайт показывает 502 с логотипом и примечанием 
+`Whoops, GitLab is taking too much time to respond`, не надо падать в обморок, 
+а надо немного подождать, пока догрузится.
+- У добрых людей специальная часть доки посвящена настройке гитлаба, спрятанного за 
+nginx-proxy: https://docs.gitlab.com/omnibus/settings/nginx.html#change-the-default-proxy-headers
 ___
 ### Установка Prometheus, Alert Manager, Node Exporter и Grafana
 
@@ -669,6 +713,119 @@ ___
 4. В Grafana есть дашборд отображающий метрики из WordPress (*).
 
 *Примечание: дашборды со звёздочкой являются опциональными заданиями повышенной сложности их выполнение желательно, но не обязательно.*
+
+Упс. Оказывается, для мониторинга нужно только одну машину.
+
+```
+systemctl status prometheus
+```
+Проблема:
+```
+ubuntu@monitoring:~$ sudo systemctl status prometheus
+● prometheus.service - Prometheus
+     Loaded: loaded (/etc/systemd/system/prometheus.service; enabled; vendor preset: enabled)
+     Active: failed (Result: exit-code) since Sat 2022-08-06 10:07:24 UTC; 3min 35s ago
+   Main PID: 1474 (code=exited, status=217/USER)
+
+Aug 06 10:07:24 monitoring systemd[1]: prometheus.service: Scheduled restart job, restart counter is at 5.
+Aug 06 10:07:24 monitoring systemd[1]: Stopped Prometheus.
+Aug 06 10:07:24 monitoring systemd[1]: prometheus.service: Start request repeated too quickly.
+Aug 06 10:07:24 monitoring systemd[1]: prometheus.service: Failed with result 'exit-code'.
+Aug 06 10:07:24 monitoring systemd[1]: Failed to start Prometheus.
+```
+Надо проверить:
+
+/etc/systemd/system/prometheus.service на предмет связки с конфигом 
+/etc/prometheus/prometheus.yml
+
+Как будто всё правильно:
+```
+ExecStart=/usr/local/bin/prometheus \
+  --storage.tsdb.path=/var/lib/prometheus \
+  --storage.tsdb.retention.time=30d \
+  --storage.tsdb.retention.size=0 \
+  --web.console.libraries=/etc/prometheus/console_libraries \
+  --web.console.templates=/etc/prometheus/consoles \
+  --web.listen-address=0.0.0.0:9090 \
+  --web.external-url= \
+  --config.file=/etc/prometheus/prometheus.yml
+```
+Тогда надо проверить права
+```
+ubuntu@monitoring:~$ sudo ls -lha /etc/prometheus/
+total 28K
+drwxrwx---  6 root monitor 4.0K Aug  6 10:07 .
+drwxr-xr-x 80 root root    4.0K Aug  6 10:08 ..
+drwxr-xr-x  2 root root    4.0K Aug  6 10:07 console_libraries
+drwxr-xr-x  2 root root    4.0K Aug  6 10:07 consoles
+drwxrwx---  2 root monitor 4.0K Aug  6 10:06 file_sd
+-rw-r-----  1 root monitor  985 Aug  6 10:07 prometheus.yml
+drwxrwx---  2 root monitor 4.0K Aug  6 10:07 rules
+```
+Права немного странные. А между тем раздавались в соответствии с предполагаемым эталоном 
+https://github.com/cloudalchemy/ansible-prometheus
+```
+- name: configure prometheus
+  template:
+    src: "{{ prometheus_config_file }}"
+    dest: "{{ prometheus_config_dir }}/prometheus.yml"
+    force: true
+    owner: root
+    group: prometheus
+    mode: 0640
+    validate: "{{ _prometheus_binary_install_dir }}/promtool check config %s"
+  notify:
+    - reload prometheus
+```
+Применим указанную в эталоне (но не используемую у нас) машинку для проверки корректности 
+конфига:
+```
+ubuntu@monitoring:~$ sudo promtool check config /etc/prometheus/prometheus.yml
+Checking /etc/prometheus/prometheus.yml
+  SUCCESS: 1 rule files found
+ SUCCESS: /etc/prometheus/prometheus.yml is valid prometheus config file syntax
+
+Checking /etc/prometheus/rules/ansible_managed.rules
+  SUCCESS: 16 rules found
+```
+жизнь прекрасна. А ручками если?
+```
+sudo systemctl daemon-reload
+sudo systemctl start prometheus
+sudo systemctl enable prometheus
+sudo systemctl status prometheus
+```
+та же фигня. смотрим journalctl
+```
+sudo journalctl | grep prometheus
+```
+```
+Aug 06 10:25:34 monitoring systemd[1]: prometheus.service: Scheduled restart job, restart counter is at 4.
+Aug 06 10:25:34 monitoring systemd[3282]: prometheus.service: Failed to determine user credentials: No such process
+Aug 06 10:25:34 monitoring systemd[3282]: prometheus.service: Failed at step USER spawning /usr/local/bin/prometheus: No such process
+Aug 06 10:25:34 monitoring systemd[1]: prometheus.service: Main process exited, code=exited, status=217/USER
+Aug 06 10:25:34 monitoring systemd[1]: prometheus.service: Failed with result 'exit-code'.
+Aug 06 10:25:34 monitoring systemd[1]: prometheus.service: Scheduled restart job, restart counter is at 5.
+Aug 06 10:25:34 monitoring systemd[1]: prometheus.service: Start request repeated too quickly.
+Aug 06 10:25:34 monitoring systemd[1]: prometheus.service: Failed with result 'exit-code'.
+```
+Похоже, где-то таки проблемы с правами. А откуда проблемы? Мы выставили к части объектов 
+права вида 770 с рутом в качестве оунера (то есть первое 7) и группой monitor (второе 7). 
+Все права должны быть у юзера monitor:monitor
+
+АГА. в конфиге затесался неправильный юзер - то есть вообще неправильный. Исправлено, 
+перезагружено, перезапущено, и ура:
+```
+ubuntu@monitoring:~$ sudo systemctl status prometheus
+● prometheus.service - Prometheus
+     Loaded: loaded (/etc/systemd/system/prometheus.service; enabled; vendor preset: enabled)
+     Active: active (running) since Sat 2022-08-06 10:50:00 UTC; 9s ago
+   Main PID: 3357 (prometheus)
+      Tasks: 10 (limit: 4647)
+     Memory: 20.9M
+     CGroup: /system.slice/prometheus.service
+             └─3357 /usr/local/bin/prometheus --storage.tsdb.path=/var/lib/prometheus --storage.tsdb.retention.time=30d --storage.tsdb.retention.size=0 --web.console.libraries=/etc/p>
+```
 
 ---
 ## Что необходимо для сдачи задания?
