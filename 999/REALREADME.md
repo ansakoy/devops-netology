@@ -685,6 +685,57 @@ sudo gitlab-ctl tail nginx
 а надо немного подождать, пока догрузится.
 - У добрых людей специальная часть доки посвящена настройке гитлаба, спрятанного за 
 nginx-proxy: https://docs.gitlab.com/omnibus/settings/nginx.html#change-the-default-proxy-headers
+
+Пример настройки раннера для проксированного гитлаба:
+```
+$ sudo cat /etc/gitlab-runner/config.toml
+concurrent = 1
+check_interval = 0
+
+[session_server]
+  session_timeout = 1800
+
+[[runners]]
+  name = "runner"
+  url = "http://gitlab"
+  token = "pryjWWYdZ-84xZSsyzVH"
+  executor = "shell"
+  [runners.custom_build_dir]
+  [runners.cache]
+    [runners.cache.s3]
+    [runners.cache.gcs]
+    [runners.cache.azure]
+```
+когда-нибудь я запомню алгоритмы генерации ключей
+```
+ssh-keygen -t ed25519 -C "<comment>"
+```
+Если гитлаб утверждает, что не знаком с раннером:
+```
+gitlab-runner verify
+```
+если раннер, оперирующий shell, выдает `Job failed (system failure): preparing environment`:
+```
+sudo rm /home/gitlab-runner/.bash_logout
+```
+debug connection
+```
+ssh -vv user@host
+```
+логи раннера
+```
+`/var/log/syslog`
+```
+ишь, возникает:
+```
+Permissions 0644 for '/home/gitlab-runner/.ssh/id_ed25519' are too open.
+It is required that your private key files are NOT accessible by others.
+This private key will be ignored.
+```
+ну ладно:
+```
+sudo chmod 600 /home/gitlab-runner/.ssh/id_ed25519
+```
 ___
 ### Установка Prometheus, Alert Manager, Node Exporter и Grafana
 
@@ -840,3 +891,40 @@ ubuntu@monitoring:~$ sudo systemctl status prometheus
   - `https://alertmanager.you.domain` (Alert Manager)
 4. Все репозитории рекомендуется хранить на одном из ресурсов ([github.com](https://github.com) или [gitlab.com](https://gitlab.com)).
 
+**ВАЖНО**
+
+При конфигурации прокси-джампа. Пример:
+
+```
+Host bastion
+  Hostname 51.250.95.211
+  User ubuntu
+  IdentityFile ~/.ssh/id_ed25519
+  StrictHostKeyChecking no
+
+Host www
+  ProxyJump %r@bastion
+  User ubuntu
+  IdentityFile ~/.ssh/id_ed25519
+  StrictHostKeyChecking no
+```
+
+Бастион - это джамп-сервер. www - это сервер во внутренней сети, с которым умеет 
+общаться бастион. В принципе работает даже так, потому что бастион знает адрес 
+внутреннего сервера www. Но для эксплицитности можно и уточнить:
+```
+Host bastion
+  Hostname 51.250.95.211
+  User ubuntu
+  IdentityFile ~/.ssh/id_ed25519
+  StrictHostKeyChecking no
+
+Host www
+  ProxyJump %r@bastion
+  Hostname 192.168.100.11
+  User ubuntu
+  IdentityFile ~/.ssh/id_ed25519
+  StrictHostKeyChecking no
+```
+IdentityFile в обоих случаях имеется в виду ключ на сервере клиента, НЕ бастиона во 
+втором случае. То есть этот ключ должен быть в authorized_keys и на www, и на бастионе.

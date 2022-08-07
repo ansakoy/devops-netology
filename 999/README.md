@@ -3,6 +3,10 @@
 [Официальный источник](https://netology.ru/profile/program/fdvpspdc-2/lessons/135374/lesson_items/696439)  
 [Источник маркдауна](https://github.com/olegbukatchuk/devops-diplom-yandexcloud/blob/main/README.md)
 
+## Основные ссылки:
+- [Репозиторий дипломного проекта](https://github.com/ansakoy/devnet-diploma)
+- [Заметки по ходу выполнения проекта](REALREADME.md)
+
 ## Цели:
 
 > 1. Зарегистрировать доменное имя (любое на ваш выбор в любой доменной зоне).
@@ -194,64 +198,133 @@ ___
 ---
 ### Установка Gitlab CE и Gitlab Runner
 
-Необходимо настроить CI/CD систему для автоматического развертывания приложения при изменении кода.
+> Необходимо настроить CI/CD систему для автоматического развертывания приложения при изменении кода.
+> 
+> Рекомендации:
+>   - Имена серверов: `gitlab.you.domain` и `runner.you.domain`
+>   - Характеристики: 4vCPU, 4 RAM, Internal address.
+> 
+> Цель:
+> 1. Построить pipeline доставки кода в среду эксплуатации, то есть настроить автоматический деплой на сервер `app.you.domain` при коммите в репозиторий с WordPress.
+> 
+> Подробнее об [Gitlab CI](https://about.gitlab.com/stages-devops-lifecycle/continuous-integration/)
+> 
+> Ожидаемый результат:
+> 
+> 1. Интерфейс Gitlab доступен по https.
+> 2. В вашей доменной зоне настроена A-запись на внешний адрес reverse proxy:
+>     - `https://gitlab.you.domain` (Gitlab)
+> 3. На сервере `you.domain` отредактирован upstream для выше указанного URL и он смотрит на виртуальную машину на которой установлен Gitlab.
+> 3. При любом коммите в репозиторий с WordPress и создании тега (например, v1.0.0) происходит деплой на виртуальную машину.
 
-Рекомендации:
-  - Имена серверов: `gitlab.you.domain` и `runner.you.domain`
-  - Характеристики: 4vCPU, 4 RAM, Internal address.
+Гитлаб доступен:
 
-Цель:
-1. Построить pipeline доставки кода в среду эксплуатации, то есть настроить автоматический деплой на сервер `app.you.domain` при коммите в репозиторий с WordPress.
+![](images/gitlab_cert_login.png)
 
-Подробнее об [Gitlab CI](https://about.gitlab.com/stages-devops-lifecycle/continuous-integration/)
+Логинится нормально:
 
-Ожидаемый результат:
+![](images/gitlab_cert_inside.png)
 
-1. Интерфейс Gitlab доступен по https.
-2. В вашей доменной зоне настроена A-запись на внешний адрес reverse proxy:
-    - `https://gitlab.you.domain` (Gitlab)
-3. На сервере `you.domain` отредактирован upstream для выше указанного URL и он смотрит на виртуальную машину на которой установлен Gitlab.
-3. При любом коммите в репозиторий с WordPress и создании тега (например, v1.0.0) происходит деплой на виртуальную машину.
+Да, будем всё делать из-под рута и самым варварским образом, а когда у нас еще 
+будет такая возможность.
+
+Устанавливаем связь между папкой вордпресса на хосте вордпресса. Для этого:
+- устанавливаем там git 
+(в основной сценарий не включено; в принципе можно включить, но цель сценария 
+рассматривается как создание инфраструктуры, в которой в дальнейшем можно работать - вот 
+сейчас с гитлабом инсценировка такой работы). 
+- в гитлабе создаем проект catabasis.site
+- на хосте в /var/www/catabasis.site инициализируем git, создаем .gitignore, кладем 
+туда приватный `wp-config.php`, добавляем гитлабовский проект в качестве remote.
+- создаем из этого коммит и пушим в гитлаб.
+
+Результат:
+
+![](images/gitlab_cert_wp_repo.png)
+
+Регистрируем раннер, который будет работать через shell. И туда же кладем баш-скрипт `deploy.sh`, 
+который будет обновлять вордпресс и перезапускать php, когда это нужно:
+```bash
+#!/bin/bash
+
+echo "I'm at $(hostname -I)"
+cd /var/www/catabasis.site
+sudo git pull
+sudo systemctl restart php7.4-fpm
+```
+Добавляем .gitlab-ci.yml:
+```yaml
+stages:
+  - deploy
+
+deployer:
+  stage: deploy
+  script:
+    - echo "Running as user $(whoami)"
+    - echo "My working dir is $(pwd)"
+    - if [ "$CI_COMMIT_TAG" = "" ] ; then echo "Deploy only happens if tag is added";
+      else 
+        echo "Look, there's a tag!" && ssh ubuntu@www 'bash -s' < /home/gitlab-runner/deploy.sh;
+      fi
+    - echo "Hey I worked!!"
+``` 
+Деплой включается, только если добавлен тег. При обычных коммитах джоб отрабатывает 
+без деплоя.
+
+Работает:
+
+![](images/gitlab_jobs.png)
+
+А именно:
+
+- просто коммит (без тега):
+
+![](images/gitlab_job_notag.png)
+
+- с тегом:
+
+![](images/gitlab_tag_success.png)
+
 
 ___
 ### Установка Prometheus, Alert Manager, Node Exporter и Grafana
 
-Необходимо разработать Ansible роль для установки Prometheus, Alert Manager и Grafana.
-
-Рекомендации:
-  - Имя сервера: `monitoring.you.domain`
-  - Характеристики: 4vCPU, 4 RAM, Internal address.
-
-Цель:
-
-1. Получение метрик со всей инфраструктуры.
-
-Ожидаемые результаты:
-
-1. Интерфейсы Prometheus, Alert Manager и Grafana доступены по https.
-2. В вашей доменной зоне настроены A-записи на внешний адрес reverse proxy:
-  - `https://grafana.you.domain` (Grafana)
-  - `https://prometheus.you.domain` (Prometheus)
-  - `https://alertmanager.you.domain` (Alert Manager)
-3. На сервере `you.domain` отредактированы upstreams для выше указанных URL и они смотрят на виртуальную машину на которой установлены Prometheus, Alert Manager и Grafana.
-4. На всех серверах установлен Node Exporter и его метрики доступны Prometheus.
-5. У Alert Manager есть необходимый [набор правил](https://awesome-prometheus-alerts.grep.to/rules.html) для создания алертов.
-2. В Grafana есть дашборд отображающий метрики из Node Exporter по всем серверам.
-3. В Grafana есть дашборд отображающий метрики из MySQL (*).
-4. В Grafana есть дашборд отображающий метрики из WordPress (*).
-
-*Примечание: дашборды со звёздочкой являются опциональными заданиями повышенной сложности их выполнение желательно, но не обязательно.*
+> Необходимо разработать Ansible роль для установки Prometheus, Alert Manager и Grafana.
+> 
+> Рекомендации:
+>   - Имя сервера: `monitoring.you.domain`
+>   - Характеристики: 4vCPU, 4 RAM, Internal address.
+> 
+> Цель:
+> 
+> 1. Получение метрик со всей инфраструктуры.
+> 
+> Ожидаемые результаты:
+> 
+> 1. Интерфейсы Prometheus, Alert Manager и Grafana доступены по https.
+> 2. В вашей доменной зоне настроены A-записи на внешний адрес reverse proxy:
+>   - `https://grafana.you.domain` (Grafana)
+>   - `https://prometheus.you.domain` (Prometheus)
+>   - `https://alertmanager.you.domain` (Alert Manager)
+> 3. На сервере `you.domain` отредактированы upstreams для выше указанных URL и они смотрят на виртуальную машину на которой установлены Prometheus, Alert Manager и Grafana.
+> 4. На всех серверах установлен Node Exporter и его метрики доступны Prometheus.
+> 5. У Alert Manager есть необходимый [набор правил](https://awesome-prometheus-alerts.grep.to/rules.html) для создания алертов.
+> 2. В Grafana есть дашборд отображающий метрики из Node Exporter по всем серверам.
+> 3. В Grafana есть дашборд отображающий метрики из MySQL (*).
+> 4. В Grafana есть дашборд отображающий метрики из WordPress (*).
+> 
+> *Примечание: дашборды со звёздочкой являются опциональными заданиями повышенной сложности их выполнение желательно, но не обязательно.*
 
 ---
 ## Что необходимо для сдачи задания?
-
-1. Репозиторий со всеми Terraform манифестами и готовность продемонстрировать создание всех ресурсов с нуля.
-2. Репозиторий со всеми Ansible ролями и готовность продемонстрировать установку всех сервисов с нуля.
-3. Скриншоты веб-интерфейсов всех сервисов работающих по HTTPS на вашем доменном имени.
-  - `https://www.you.domain` (WordPress)
-  - `https://gitlab.you.domain` (Gitlab)
-  - `https://grafana.you.domain` (Grafana)
-  - `https://prometheus.you.domain` (Prometheus)
-  - `https://alertmanager.you.domain` (Alert Manager)
-4. Все репозитории рекомендуется хранить на одном из ресурсов ([github.com](https://github.com) или [gitlab.com](https://gitlab.com)).
+> 
+> 1. Репозиторий со всеми Terraform манифестами и готовность продемонстрировать создание всех ресурсов с нуля.
+> 2. Репозиторий со всеми Ansible ролями и готовность продемонстрировать установку всех сервисов с нуля.
+> 3. Скриншоты веб-интерфейсов всех сервисов работающих по HTTPS на вашем доменном имени.
+>   - `https://www.you.domain` (WordPress)
+>   - `https://gitlab.you.domain` (Gitlab)
+>   - `https://grafana.you.domain` (Grafana)
+>   - `https://prometheus.you.domain` (Prometheus)
+>   - `https://alertmanager.you.domain` (Alert Manager)
+> 4. Все репозитории рекомендуется хранить на одном из ресурсов ([github.com](https://github.com) или [gitlab.com](https://gitlab.com)).
 
