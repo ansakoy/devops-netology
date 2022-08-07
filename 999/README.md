@@ -365,3 +365,4 @@ Alertmanager:
 >   - `https://alertmanager.you.domain` (Alert Manager)
 > 4. Все репозитории рекомендуется хранить на одном из ресурсов ([github.com](https://github.com) или [gitlab.com](https://gitlab.com)).
 
+[Еще раз ссылка на репозиторий проекта](https://github.com/ansakoy/devnet-diploma)
