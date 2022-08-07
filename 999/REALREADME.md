@@ -663,6 +663,9 @@ nginx['proxy_set_headers'] = {
   "Upgrade" => "$http_upgrade",
   "Connection" => "$connection_upgrade"
 }
+
+node_exporter['listen_address'] = '0.0.0.0:9100'  # иначе не покажет
+prometheus['listen_address'] = '0.0.0.0:9090'  # аналогично
 ```
 - После изменения конфига надо переконфигурировать гитлаб
 ```
@@ -928,3 +931,11 @@ Host www
 ```
 IdentityFile в обоих случаях имеется в виду ключ на сервере клиента, НЕ бастиона во 
 втором случае. То есть этот ключ должен быть в authorized_keys и на www, и на бастионе.
+
+
+nmap
+
+посмотреть, какие порты открыты
+```
+nmap <address>
+```

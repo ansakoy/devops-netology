@@ -43,6 +43,10 @@
 Есть учетная запись на reg.ru и домен catabasis.site, который, скорее всего, сгинет к январю 2023 
 года, потому что продлевать его большого смысла нет.
 
+Делегируем домен Яндекс-Облаку:
+
+![](images/regrudelegate.png)
+
 ### Создание инфраструктуры
 
 > Для начала необходимо подготовить инфраструктуру в YC при помощи [Terraform](https://www.terraform.io/).
@@ -251,6 +255,7 @@ echo "I'm at $(hostname -I)"
 cd /var/www/catabasis.site
 sudo git pull
 sudo systemctl restart php7.4-fpm
+sudo systemctl start nginx
 ```
 Добавляем .gitlab-ci.yml:
 ```yaml
@@ -314,6 +319,38 @@ ___
 > 4. В Grafana есть дашборд отображающий метрики из WordPress (*).
 > 
 > *Примечание: дашборды со звёздочкой являются опциональными заданиями повышенной сложности их выполнение желательно, но не обязательно.*
+
+Примечание: так сложилось исторически, что в машина с вордпрессом в этой инфраструктуре называется www, 
+а прокси-машина - catabasis.site.
+
+Для начала демонстрация прометея и алертов в действии: обнаружили, что не все 
+ноды удалось подключить, и подняли тревогу:
+
+Прометей:
+
+![](images/prometheus_bad_hosts.png)
+
+Alertmanager:
+
+![](images/alerts_bad_hosts.png)
+
+Исправление проблем оценили:
+
+![](images/prometheus_all_nodes.png)
+
+![](images/prometheus_all_up.png)
+
+![](images/alerts_errors_removed.png)
+
+Графана:
+
+Теперь видит все ноды:
+
+![](images/grafana_all_nodes.png)
+
+На машине с гитлабом запустили форк-бомбу:
+
+![](images/grafana_gitlab_fork_bomb.png)
 
 ---
 ## Что необходимо для сдачи задания?
